@@ -11,11 +11,18 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('tweets', function (Blueprint $table) {
+        Schema::create('tweets', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id');
+
+            $table->unsignedBigInteger('user_id');
+            $table->foreign('user_id')
+                ->references('id')
+                ->on('users')
+                ->onDelete('cascade');
+            
             $table->string('text', 8192);
-            $table->timestamp('created');
+            $table->timestamp('created_at');
+            $table->timestamp('updated_at')->nullable();
         });
     }
 
@@ -26,8 +33,5 @@ return new class extends Migration
     {
         Schema::dropIfExists('tweets');
 
-        Schema::table('tweets', function (Blueprint $table) {
-            //
-        });
     }
 };
