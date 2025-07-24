@@ -1,11 +1,11 @@
 <?php
 
-namespace App\Http\Resources;
+namespace App\Http\Resources\User;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
-class TweetResource extends JsonResource
+class UserResource extends JsonResource
 {
     /**
      * Transform the resource into an array.
@@ -16,12 +16,8 @@ class TweetResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'text' => $this->text,
-            'created_at' => $this->created_at,
-            'user' => [
-                'id' => $this->user->id,
-                'username' => $this->user->username,
-            ],
+            'username' => $this->username,
+            // todo: 'photo link'
         ];
     }
 }

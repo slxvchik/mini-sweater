@@ -4,12 +4,23 @@ namespace App\Repository;
 
 use App\Models\Tweet;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class TweetRepository {
-    
-    public function getAll(): Collection {
-        return Tweet::all();
+
+    public function findTweets(int $perPage, int $page, $params = []): Collection {
+        $query = Tweet::query()
+            ->with('user:id,username')
+            ->withCount(['comments', 'likes'])
+            ->orderByDesc('created_at');
+        foreach ($params as $column => $value) {
+            if (in_array($column, ['user_id'])) {
+                $query->where($column, $value);
+            }
+        }
+        return $query->forPage($page, $perPage)->get();
     }
 
     public function create(int $userId, string $text): Tweet {
@@ -20,12 +31,23 @@ class TweetRepository {
         ]);
     }
 
-    public function findTweetsByUserId(int $userId): Collection {
-        return Tweet::where('user_id', $userId)->with('user')->latest()->get();
+    public function findTweetById(int $tweetId): Tweet {
+        $tweet = Tweet::where('id', $tweetId)->first();
+        if ($tweet === null) {
+            throw new HttpException(404, 'Tweet not found');
+        }
+        return $tweet;
     }
 
-    public function findTweetById(int $tweetId): Tweet {
-        return Tweet::where('id', $tweetId)->firstOrFail();
+    public function findTweetByIdWithCounts(int $tweetId): Tweet {
+        $tweet = Tweet::where('id', $tweetId)
+            ->with('user:id,username')
+            ->withCount(['comments', 'likes'])
+            ->first();
+        if ($tweet === null) {
+            throw new HttpException(404, 'Tweet not found');
+        }
+        return $tweet;
     }
 
     public function destroy(int $tweetId): bool | null {

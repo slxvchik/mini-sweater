@@ -81,4 +81,11 @@ return [
         'validate_csrf_token' => Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class,
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Префикс маршрута Sanctum
+    |--------------------------------------------------------------------------
+    */
+    'prefix' => 'api/v1',
+
 ];

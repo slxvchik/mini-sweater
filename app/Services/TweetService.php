@@ -2,11 +2,8 @@
 
 namespace App\Services;
 
-use App\Http\Resources\TweetResource;
 use App\Models\Tweet;
-use App\Models\User;
 use Illuminate\Database\Eloquent\Collection;
-use Symfony\Component\HttpKernel\Exception\HttpException;
 use App\Repository\TweetRepository;
 use App\Repository\UserRepository;
 
@@ -24,30 +21,37 @@ class TweetService {
         $this->userRepository = $userRepository;
     }
 
-    public function getAll(): Collection {
-        return $this->tweetRepository->getAll();
+    public function getTweets(array $params = []): Collection {
+
+        $perPage = min(max(1, (int)($params['per_page'] ?? 20)), 100);
+
+        return $this->tweetRepository->findTweets($perPage, $params['page'] ?? 1, $params);
     }
 
-    public function getUserLatestTweets(string $username) {
-        
-        $user = $this->userRepository->findUserByUsername($username);
-
-        $tweets = $this->tweetRepository->findTweetsByUserId($user->id);
-
-        return TweetResource::collection($tweets);
+    public function create(string $userId, string $text): Tweet {
+        return $this->tweetRepository->create($userId, $text);
     }
 
-    public function create(string $username, string $text): Tweet {
+    public function destroy(int $tweetId): bool | null {
+        return $this->tweetRepository->destroy($tweetId);
+    }
+
+    public function update(int $tweetId, string $text): Tweet { 
         
-        $user = $this->userRepository->findUserByUsername($username);
-        
-        $tweet = $this->tweetRepository->create($user->id, $text);
+        $tweet = $this->tweetRepository->findTweetById($tweetId);
+
+        $tweet->text = $text;
+        $tweet->save();
         
         return $tweet;
     }
 
-    public function destroy(int $postId): bool | null {
-        return $this->tweetRepository->destroy($postId);
+    public function getById(int $tweetId): Tweet {
+        return $this->tweetRepository->findTweetById($tweetId);
     }
 
+    public function isUserTweet(int $userId, int $tweetId): bool {
+        $tweet = $this->tweetRepository->findTweetById($tweetId);
+        return $tweet->user_id === $userId;
+    }
 }

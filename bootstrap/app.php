@@ -14,9 +14,16 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->api(prepend: [
-            \App\Http\Middleware\ApiResponseFormatter::class
-        ]);
+        
+        /** Затем вы должны указать Laravel, что входящие запросы от вашего SPA
+         * могут аутентифицироваться с использованием файлов cookie сеанса Laravel,
+         * при этом позволяя запросам третьих сторон или мобильных приложений аутентифицироваться
+         * с использованием токенов API. */
+        $middleware->statefulApi();
+
+        // $middleware->api(prepend: [
+        //     \App\Http\Middleware\ApiResponseFormatter::class
+        // ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
 
@@ -24,19 +31,17 @@ return Application::configure(basePath: dirname(__DIR__))
             
             $statusCode = determineStatusCode($ex);
 
-            $errors = $ex->getMessage();
+            $response = [
+                'success' => false,
+                'message' => $ex->getMessage()
+            ];
+
             if ($ex instanceof ValidationException) { 
                 $statusCode = $ex->status;
-                $errors =  $ex->errors(); 
+                $response['data'] =  $ex->errors(); 
             }
 
-            return response()->json([
-                'status' =>  'error',
-                'code' => $statusCode,
-                'data' => null,
-                'message' => $ex->getMessage(),
-                'errors' => $errors
-            ], $statusCode);
+            return response()->json($response, $statusCode);
 
         });
 
