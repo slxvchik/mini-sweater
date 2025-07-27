@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Services\UserService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Validator;
 
 class AccountController extends BaseController
 {
@@ -25,17 +26,21 @@ class AccountController extends BaseController
 
     public function update(Request $request): JsonResponse {
 
-        $validated = $request->validate([
+        $validator = Validator::make($request->all(), [
             'bio' => ['required', 'nullable', 'max:4096'],
             'birthday' => ['required', 'nullable', 'dateformat:d.m.Y']
         ]);
+
+        if ($validator->fails()) {
+            return $this->sendError('Validation error', 422, $validator->errors());
+        }
         
         $userId = Auth::id();
 
         $user = $this->userService->update(
             $userId, 
-            $validated['bio'],
-            $validated['birthday']
+            $request->input('bio'),
+            $request->input('birthday')
         );
 
         return $this->sendResponse($user);
@@ -43,16 +48,20 @@ class AccountController extends BaseController
 
     public function partitialUpdate(Request $request): JsonResponse {
         
-        $validated = $request->validate([
+        $validator = Validator::make($request->all(), [
             'bio' => ['sometimes', 'nullable', 'max:4096',],
             'birthday' => ['sometimes', 'nullable', 'dateformat:d.m.Y']
         ]);
+
+        if ($validator->fails()) {
+            return $this->sendError('Validation error', 422, $validator->errors());
+        }
 
         $userId = Auth::id();
 
         $user = $this->userService->partitialUpdate(
             $userId, 
-            $validated
+            $validator->validated()
         );
         
         return $this->sendResponse($user);
@@ -71,19 +80,23 @@ class AccountController extends BaseController
 
     public function changeEmail(Request $request): JsonResponse {
 
-        $validated = $request->validate([
+        $validator = Validator::make($request->all(), [
             'old_email' => ['required', 'email'],
             'new_email' => ['required',  'email'],
             'password' => ['required', 'min:6']
         ]);
 
+        if ($validator->fails()) {
+            return $this->sendError('Validation error', 422, $validator->errors());
+        }
+
         $userId = Auth::id();
 
         $user = $this->userService->updateEmail(
             $userId, 
-            $validated['old_email'], 
-            $validated['new_email'], 
-            $validated['password']
+            $request->input('old_email'), 
+            $request->input('new_email'), 
+            $request->input('password')
         );
 
         return $this->sendResponse($user);
@@ -91,29 +104,46 @@ class AccountController extends BaseController
 
     public function changeUsername(Request $request): JsonResponse {
 
-        $validated = $request->validate([
+        $validator = Validator::make($request->all(), [
             'old_username' => ['required', 'max:255', 'regex:/[a-zA-Z][a-zA-Z0-9_]{4,32}/i'],
             'new_username' => ['required',  'max:255', 'regex:/[a-zA-Z][a-zA-Z0-9_]{4,32}/i'],
             'password' => ['required', 'min:6']
         ]);
 
+        if ($validator->fails()) {
+            return $this->sendError('Validation error', 422, $validator->errors());
+        }
+
         $userId = Auth::id();
 
-        $user = $this->userService->updateUsername($userId, $validated['old_username'], $validated['new_username'], $validated['password']);
+        $user = $this->userService->updateUsername(
+            $userId, 
+            $request->input('old_username'), 
+            $request->input('new_username'), 
+            $request->input('password')
+        );
 
         return $this->sendResponse($user);
     }
 
     public function changePassword(Request $request): JsonResponse {
         
-        $validated = $request->validate([
+        $validator = Validator::make($request->all(), [
             'old_password' => ['required', 'min:6'],
             'new_password' => ['required', 'min:6']
         ]);
 
+        if ($validator->fails()) {
+            return $this->sendError('Validation error', 422, $validator->errors());
+        }
+
         $userId = Auth::id();
 
-        $user = $this->userService->changePassword($userId, $validated['old_password'], $validated['new_password']);
+        $user = $this->userService->changePassword(
+            $userId, 
+            $request->input('old_password'), 
+            $request->input('new_password')
+        );
 
         return $this->sendResponse($user);
     }

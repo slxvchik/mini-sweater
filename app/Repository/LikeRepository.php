@@ -22,29 +22,60 @@ class LikeRepository {
         ]);
     }
 
-    public function findLikesByUserId(int $userId): Collection {
+    public function destroy(int $likeId): ?bool {
+        return $this->findLikeById($likeId)->delete();
+    }
+
+    public function findLikesByUser(int $userId): Collection {
         return Like::where('user_id', $userId)->with('user')->latest()->get();
     }
 
-    public function findLikeById(int $likeId): Like {
-        return Like::where('id', $likeId)->firstOrFail();
+    public function findLikeById(int $likeId): ?Like {
+        return Like::where('id', $likeId)->first();
     }
 
-    public function destroy(int $likeId): bool | null {
-        
-        $like = $this->findLikeById($likeId);
-        
-        return $like->delete();
+    public function findLikeByUser(int $userId, int $likeableId, LikeableType $likeableType): ?Like {
+        return Like::where('user_id', $userId)
+            ->where('likeable_id', $likeableId)
+            ->where('likeable_type', $likeableType)
+            ->first();
     }
 
-    public function update(int $likeId, $tweetId, $commentId) {
+    public function findLikesByLikeable(int $likeableId, LikeableType $likeableType): Collection {
+        return Like::where('likeable_id', $likeableId)
+            ->where('likeable_type', $likeableType)
+            ->with('user:id,username')
+            ->get();
+    }
 
-        $like = $this->findLikeById($likeId);
+    public function isLikeExistsById(int $likeId): bool {
+        return Like::where('id', $likeId)->exists();
+    }
 
-        $like->tweet_id = $tweetId;
-        $like->comment_id = $commentId;
-        $like->save();
+    public function isLikeExistsByUser(int $userId, int $likeableId, LikeableType $likeableType): bool {
+        return Like::where('user_id', $userId)
+            ->where('likeable_id', $likeableId)
+            ->where('likeable_type', $likeableType)
+            ->exists();
+    }
 
-        return $like;
+    public function deleteByLikeable(array $likeableIds, LikeableType $type): void {
+        if (count($likeableIds) === 0) return;
+        // Оптимизация для разных сценариев
+        count($likeableIds) > 1000
+            ? $this->chunkedDelete($likeableIds, $type)
+            : $this->directDelete($likeableIds, $type);
+    }
+
+    private function directDelete(array $ids, LikeableType $type): void {
+        Like::where('likeable_type', $type)
+            ->whereIn('likeable_id', $ids)
+            ->delete();
+    }
+
+    private function chunkedDelete(array $ids, LikeableType $type, int $chunkSize = 1000): void {
+        collect($ids)->chunk($chunkSize)->each(function ($chunk) use ($type) {
+            $this->directDelete($chunk->toArray(), $type);
+        });
     }
 }

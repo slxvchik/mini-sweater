@@ -23,15 +23,16 @@ Route::prefix('v1')->group(function (){
         Route::get('/', 'index');
         Route::get('/{username}', 'show');
         
-        //todo:
+    });
+    
+    // Route::prefix('follows')->controller(FollowController::class)->group(function (){
+        // todo:
         // Follow system
         // Route::get('/{username}/followers', 'followers');
         // Route::get('/{username}/following', 'following');
         // Route::post('/{username}/follow', 'follow')->middleware('auth:sanctum');
         // Route::delete('/{username}/unfollow', 'unfollow')->middleware('auth:sanctum');
-        
-        // Change authenticated user info
-    });
+    // });
 
     Route::prefix('/account')->controller(AccountController::class)->middleware('auth:sanctum')->group(function (){
         Route::get('/', 'show');
@@ -52,8 +53,8 @@ Route::prefix('v1')->group(function (){
         Route::put('/{tweet_id}', 'update')->middleware('auth:sanctum');
         Route::delete('/{tweet_id}', 'destroy')->middleware('auth:sanctum');
 
-        //Feed
-        // Route::get('/feed', 'feed')->middleware('auth:sanctum');
+        Route::get('/user/{user_id}', 'showUserTweets');
+        // Route::get('/feed', 'showFollowingTweets')->middleware('auth:sanctum');
     });
 
     Route::prefix('comments')->controller(CommentController::class)->group(function() {
@@ -68,6 +69,7 @@ Route::prefix('v1')->group(function (){
     });
 
     Route::prefix('likes')->controller(LikeController::class)->group(function() {
+        
         Route::get('/', 'index');
 
         Route::post('/tweet', 'storeLikeTweet')->middleware('auth:sanctum');
@@ -77,22 +79,11 @@ Route::prefix('v1')->group(function (){
         Route::get('/{like_id}', 'show');
         Route::delete('/{like_id}', 'destroy')->middleware('auth:sanctum');
 
-        // todo: Tweet likes
-        // Route::get('/tweet/{tweet_id}', 'tweetLikes');
-        // Route::get('/tweet/{tweet_id}/check', 'checkTweetLike')->middleware('auth:sanctum');
+        // Tweet likes
+        Route::get('/tweet/{tweet_id}', 'showTweetLikes');
 
-        // todo: Comment likes
-        // Route::get('/comment/{comment_id}', 'commentLikes');
-        // Route::get('/comment/{comment_id}/check', 'checkCommentLike')->middleware('auth:sanctum');
+        // Comment likes
+        Route::get('/comment/{comment_id}', 'showCommentLikes');
     });
-
-    //todo
-    // Search routes (future)
-    // Route::prefix('search')->controller(SearchController::class)->group(function () {
-    //     Route::get('/users', 'searchUsers');
-    //     Route::get('/tweets', 'searchTweets');
-    // });
-    // Route::get('/search?users={username}', [SearchController::class, 'findUsersByUsername']);
-    // Route::get('/{username}/latest_tweets', [TweetController::class, 'getUserLatestTweets']);
 
 });

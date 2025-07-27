@@ -12,20 +12,12 @@ class UserRepository {
         return User::all();
     }
 
-    public function findUserById(int $userId): User {
-        $user = User::where('id', $userId)->first();
-        if ($user === null) {
-            throw new HttpException(404, 'User not found');
-        }
-        return $user;
+    public function findUserById(int $userId): ?User {
+        return User::where('id', $userId)->first();
     }
 
     public function findUserByUsername(string $username): ?User {
-        $user = User::where('username', $username)->first();
-        if ($user === null) {
-            throw new HttpException(404, 'User not found');
-        }
-        return $user;
+        return User::where('username', $username)->first();
     }
 
     public function createUser(string $username, string $email, string $password): User {
@@ -43,15 +35,15 @@ class UserRepository {
         return $user->delete();
     }
 
-    public function userExistsByUsername(string $username): bool {
+    public function isUserExistsByUsername(string $username): bool {
         return User::where('username', $username)->exists();
     }
 
-    public function userExistsByEmail(string $email): bool {
+    public function isUserExistsByEmail(string $email): bool {
         return User::where('email', $email)->exists();
     }
 
-    public function userExistsById(int $userId): bool {
+    public function isUserExistsById(int $userId): bool {
         return User::where('id', $userId)->exists();
     }
 }

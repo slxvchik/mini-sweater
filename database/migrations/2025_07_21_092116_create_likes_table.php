@@ -18,10 +18,11 @@ return new class extends Migration
             
             $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
 
-            $table->unsignedBigInteger('likeable_id');
-            $table->enum('likeable_type', LikeableType::values()); // tweet | comment
+            $table->morphs('likeable');
 
             $table->timestamp('created_at');
+
+            $table->unique(['user_id', 'likeable_id', 'likeable_type']);
         });
     }
 

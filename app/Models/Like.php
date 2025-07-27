@@ -10,7 +10,12 @@ class Like extends Model
 {
     public $timestamps = false;
 
-    protected $fillable = ['user_id', 'likeable_id', 'likeable_type'];
+    protected $fillable = [
+        'user_id',
+        'likeable_id',
+        'likeable_type',
+        'created_at'
+    ];
 
     public function likeable(): MorphTo { 
         return $this->morphTo();

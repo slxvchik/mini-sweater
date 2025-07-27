@@ -4,24 +4,46 @@ namespace App\Repository;
 
 use App\Models\Tweet;
 use Carbon\Carbon;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
-use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class TweetRepository {
 
-    public function findTweets(int $perPage, int $page, $params = []): Collection {
-        $query = Tweet::query()
-            ->with('user:id,username')
-            ->withCount(['comments', 'likes'])
-            ->orderByDesc('created_at');
-        foreach ($params as $column => $value) {
-            if (in_array($column, ['user_id'])) {
-                $query->where($column, $value);
-            }
+    // Подписки (фид), пользователь, по тексту.
+    
+    public function findTweets(?int $currentUserId = null, int $perPage = 20, int $page = 1, $sortBy = 'created_at', $sortOrder = 'desc'): Collection {
+        
+        $query = Tweet::with('user:id,username')
+            ->withCount(['comments', 'likes']);
+        
+        if ($currentUserId) {
+            $query->withExists(['likes as is_liked' => function($q) use ($currentUserId) {
+                $q->where('user_id', $currentUserId);
+            }]);
         }
+        
+        $query->orderBy($sortBy, $sortOrder);
         return $query->forPage($page, $perPage)->get();
     }
+
+    public function findUserTweets(?int $currentUserId = null, int $userId, int $perPage = 20, int $page = 1, $sortBy = 'created_at', $sortOrder = 'desc'): Collection {
+        
+        $query = Tweet::where('user_id', $userId)
+            ->with('user:id,username')
+            ->withCount(['comments', 'likes']);
+        
+        if ($currentUserId) {
+            $query->withExists(['likes as is_liked' => function($q) use ($currentUserId) {
+                $q->where('user_id', $currentUserId);
+            }]);
+        }
+
+        $query->orderBy($sortBy, $sortOrder);
+        return $query->forPage($page, $perPage)->get();
+    }
+
+    // public function findFollowingTweets() {
+    //     $followingIds = Relationship::where('follower_id', $followerId);
+    // }
 
     public function create(int $userId, string $text): Tweet {
         return Tweet::create([
@@ -31,23 +53,22 @@ class TweetRepository {
         ]);
     }
 
-    public function findTweetById(int $tweetId): Tweet {
-        $tweet = Tweet::where('id', $tweetId)->first();
-        if ($tweet === null) {
-            throw new HttpException(404, 'Tweet not found');
-        }
-        return $tweet;
+    public function findTweetById(int $tweetId): ?Tweet {
+        return Tweet::where('id', $tweetId)->first();
     }
 
-    public function findTweetByIdWithCounts(int $tweetId): Tweet {
-        $tweet = Tweet::where('id', $tweetId)
-            ->with('user:id,username')
-            ->withCount(['comments', 'likes'])
-            ->first();
-        if ($tweet === null) {
-            throw new HttpException(404, 'Tweet not found');
+    public function findTweetByIdWithCounts(int $tweetId, ?int $currentUserId = null): ?Tweet {
+
+        $query = Tweet::where('id', $tweetId)
+            ->withCount(['comments', 'likes']);
+
+        if ($currentUserId) {
+            $query->withExists(['likes as is_liked' => function($q) use ($currentUserId) {
+                $q->where('user_id', $currentUserId);
+            }]);
         }
-        return $tweet;
+
+        return $query->first();
     }
 
     public function destroy(int $tweetId): bool | null {
@@ -55,5 +76,9 @@ class TweetRepository {
         $tweet = $this->findTweetById($tweetId);
         
         return $tweet->delete();
+    }
+
+    public function tweetExists(int $tweetId): bool {
+        return Tweet::where('id', $tweetId)->exists();
     }
 }

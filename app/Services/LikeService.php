@@ -3,9 +3,13 @@
 namespace App\Services;
 
 use App\Enums\LikeableType;
+use App\Exceptions\ConflictException;
+use App\Exceptions\LikeNotFoundException;
+use App\Exceptions\UserNotFoundException;
 use App\Models\Like;
 use App\Repository\LikeRepository;
 use App\Repository\UserRepository;
+use Exception;
 use Illuminate\Database\Eloquent\Collection;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
@@ -24,35 +28,56 @@ class LikeService {
 
     public function create(int $userId, int $likeableId, LikeableType $likeableType): Like {
 
-        if (!$this->userRepository->userExistsById($userId)) {
-            throw new HttpException(404, 'User not found');
+        if (!$this->userRepository->isUserExistsById($userId)) {
+            throw new UserNotFoundException();
+        }
+
+        if ($this->isLikeExistsByUser($userId, $likeableId, $likeableType)) {
+            throw new ConflictException('Like already exists');
         }
 
         return $this->likeRepository->create($userId, $likeableId, $likeableType);
     }
 
-    public function getById(int $likeId): Like {
-
-        return $this->likeRepository->findLikeById($likeId);
-    }
-
-    public function update(int $likeId, int $tweetId, int $commentId): Like {
-
-        if (!($tweetId === null xor $commentId === null)) {
-            throw new HttpException(422, 'A "Like" cannot be both a "Tweet" and a "Comment".');
-        }
-
-        $like = $this->likeRepository->update($likeId, $tweetId, $commentId);
-
-        return $like;
-    }
-
-    public function destroy(int $likeId): bool | null {
+    public function destroy(int $likeId): ?bool {
         return $this->likeRepository->destroy($likeId);
     }
 
-    public function isUserLike(int $userId, int $likeId): bool {
+    public function getLikeById(int $likeId): Like {
         $like = $this->likeRepository->findLikeById($likeId);
+        if (!$like) {
+            throw new LikeNotFoundException();
+        }
+        return $like;
+    }
+
+    public function getTweetLikes(int $tweetId): Collection {
+        return $this->likeRepository->findLikesByLikeable($tweetId, LikeableType::TWEET);
+    }
+
+    public function getCommentLikes(int $commentId): Collection {
+        return $this->likeRepository->findLikesByLikeable($commentId, LikeableType::COMMENT);
+    }
+
+    public function getLikeByUser(int $userId, int $likeableId, LikeableType $likeableType): Like {
+        $like = $this->likeRepository->findLikeByUser($userId, $likeableId, $likeableType);
+        if (!$like) {
+            throw new LikeNotFoundException();
+        }
+        return $like;
+    }
+
+    public function isUserLike(int $userId, int $likeId): bool {
+        $like = $this->getLikeById($likeId);
         return $like->user_id === $userId;
     }
+
+    public function isLikeExistsById(int $likeId): bool {
+        return $this->likeRepository->isLikeExistsById($likeId);
+    }
+
+    public function isLikeExistsByUser(int $userId, int $likeableId, LikeableType $likeableType): bool {
+        return $this->likeRepository->isLikeExistsByUser($userId, $likeableId, $likeableType);
+    }
+
 }

@@ -24,6 +24,7 @@ return new class extends Migration
 
             $table->text('text');
             $table->timestamp('created_at');
+            $table->timestamp('updated_at')->nullable();
         });
     }
 

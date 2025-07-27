@@ -18,6 +18,7 @@ class AuthController extends BaseController
         $this->userService = $userService;
     }
 
+    // Можно зарегистрировать пользователей, когда аутентифицировался
     public function register(Request $request): JsonResponse {
 
         $validator = Validator::make($request->all(), [
@@ -33,24 +34,17 @@ class AuthController extends BaseController
 
         $input = $request->all();
 
-        try {
-            DB::beginTransaction();
+        $user = $this->userService->create(
+            $request->input('username'), 
+            $request->input('email'), 
+            $request->input('password')
+        );
 
-            $user = $this->userService->create($input['username'], $input['email'], $input['password']);
+        Auth::login($user, $request->input('remember_me'));
+        $request->session()->regenerate();
 
-            Auth::login($user, $input['remember_me']);
-            $request->session()->regenerate();
 
-            DB::commit();
-
-            return $this->sendResponse($user, 201, 'User successfully created');
-
-        } catch (\Exception $e) {
-
-            DB::rollBack();
-
-            return $this->sendError('Registration failed', 500);
-        }
+        return $this->sendResponse($user, 201, 'User successfully created');
     }
 
     public function login(Request $request): JsonResponse {
@@ -65,12 +59,10 @@ class AuthController extends BaseController
             return $this->sendError('Validation error', 422, $validator->errors());
         }
 
-        $input = $request->all();
-
         if(!Auth::attempt([
-            'username' => $input['username'], 
-            'password' => $input['password']
-        ], $input['remember_me'])) {
+            'username' => $request->input('username'), 
+            'password' => $request->input('password')
+        ], $request->input('remember_me'))) {
             return $this->sendError(
                 'The provided credentials are incorrect', 
                 401

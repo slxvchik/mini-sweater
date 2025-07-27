@@ -7,8 +7,7 @@ use App\Services\LikeService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Validation\Rule;
-use Symfony\Component\HttpKernel\Exception\HttpException;
+use Illuminate\Support\Facades\Validator;
 
 class LikeController extends BaseController
 {
@@ -27,11 +26,19 @@ class LikeController extends BaseController
     
         $userId = Auth::id();
 
-        $validated = $request->validate([
+        $validator = Validator::make($request->all(), [
             'tweet_id' => ['integer', 'required'],
         ]);
 
-        $like = $this->likeService->create($userId, $validated['tweet_id'], LikeableType::TWEET);
+        if ($validator->fails()) {
+            return $this->sendError('Validation error', 422, $validator->errors());
+        }
+
+        $like = $this->likeService->create(
+            $userId,
+            $request->input('tweet_id'),
+            LikeableType::TWEET
+        );
 
         return $this->sendResponse($like, 201);
     }
@@ -40,17 +47,25 @@ class LikeController extends BaseController
         
         $userId = Auth::id();
 
-        $validated = $request->validate([
+        $validator = Validator::make($request->all(), [
             'comment_id' => ['integer', 'required'],
         ]);
 
-        $like = $this->likeService->create($userId, $validated['comment_id'], LikeableType::COMMENT);
+        if ($validator->fails()) {
+            return $this->sendError('Validation error', 422, $validator->errors());
+        }
+
+        $like = $this->likeService->create(
+            $userId, 
+            $request->input('comment_id'), 
+            LikeableType::COMMENT
+        );
 
         return $this->sendResponse($like, 201);
     }
 
-    public function show(Request $request, int $likeId) {
-        $like = $this->likeService->getById($likeId);
+    public function show(Request $request, int $likeId): JsonResponse {
+        $like = $this->likeService->getLikeById($likeId);
         return $this->sendResponse($like);
     }
 
@@ -63,9 +78,23 @@ class LikeController extends BaseController
         }
 
         if ($this->likeService->destroy($likeId)) {
-            return $this->sendResponse(null, 200, ' has been unliked');
+            return $this->sendResponse(null, 200, 'Unliked');
         }
 
         return $this->sendError('Server cannot delete like', 500);
+    }
+
+    public function showTweetLikes(Request $request, int $tweetId): JsonResponse {
+        
+        $likes = $this->likeService->getTweetLikes($tweetId);
+
+        return $this->sendResponse($likes);
+    }
+
+    public function showCommentLikes(Request $request, int $tweetId): JsonResponse {
+        
+        $likes = $this->likeService->getCommentLikes($tweetId);
+
+        return $this->sendResponse($likes);
     }
 }
