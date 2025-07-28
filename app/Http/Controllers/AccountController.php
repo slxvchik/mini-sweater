@@ -67,7 +67,7 @@ class AccountController extends BaseController
         return $this->sendResponse($user);
     }
 
-    public function destroy(Request $request): JsonResponse {
+    public function destroy(): JsonResponse {
 
         $userId = Auth::id();
 
@@ -105,8 +105,8 @@ class AccountController extends BaseController
     public function changeUsername(Request $request): JsonResponse {
 
         $validator = Validator::make($request->all(), [
-            'old_username' => ['required', 'max:255', 'regex:/[a-zA-Z][a-zA-Z0-9_]{4,32}/i'],
-            'new_username' => ['required',  'max:255', 'regex:/[a-zA-Z][a-zA-Z0-9_]{4,32}/i'],
+            'old_username' => ['required', 'max:255', 'regex:/^[a-zA-Z][a-zA-Z0-9_]{4,32}$/i'],
+            'new_username' => ['required',  'max:255', 'regex:/^[a-zA-Z][a-zA-Z0-9_]{4,32}$/i'],
             'password' => ['required', 'min:6']
         ]);
 

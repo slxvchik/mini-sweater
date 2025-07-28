@@ -35,10 +35,10 @@ class TweetController extends BaseController
     
         $tweets = $this->tweetService->getTweets(
             Auth::id(),
-            $request->input('per_page') ?? 20,
-            $request->input('page') ?? 1,
-            $request->input('sort_by') ?? 'created_at',
-            $request->input('sort_order') ?? 'desc',
+            $request->input('per_page', 20),
+            $request->input('page', 1),
+            $request->input('sort_by', 'created_at'),
+            $request->input('sort_order', 'desc'),
         );
         
         return $this->sendResponse($tweets);
@@ -48,8 +48,7 @@ class TweetController extends BaseController
     public function showUserTweets(Request $request, int $userId): JsonResponse {
 
         $validator = Validator::make(
-            array_merge($request->all(), ['user_id' => $userId]), 
-            ['user_id' => ['required', 'integer'],
+            $request->all(), [
             'page' => ['sometimes', 'integer', 'min:1'],
             'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
             'sort_by' => ['sometimes', 'string', 'in:created_at,likes_count,comments_count'],
@@ -63,24 +62,38 @@ class TweetController extends BaseController
         $tweets = $this->tweetService->getUserTweets(
             Auth::id(),
             $userId,
-            $request->input('per_page') ?? 20,
-            $request->input('page') ?? 1,
-            $request->input('sort_by') ?? 'created_at',
-            $request->input('sort_order') ?? 'desc',
+            $request->input('per_page', 20),
+            $request->input('page', 1),
+            $request->input('sort_by', 'created_at'),
+            $request->input('sort_order', 'desc'),
         );
         
         return $this->sendResponse($tweets);
     }
 
     // Last tweets following users
-    // public function showFollowingTweets(Request $request): JsonResponse {
-    //     // getFollowingTweets
-    // }
+    public function showFollowingTweets(Request $request): JsonResponse {
+
+        $validator = Validator::make(
+            $request->all(), [
+            'page' => ['sometimes', 'integer', 'min:1'],
+            'per_page' => ['sometimes', 'integer', 'min:1', 'max:100']]
+        );
+        
+        if ($validator->fails()) {
+            return $this->sendError('Validation error', 422, $validator->errors());
+        }
+        
+        $tweets = $this->tweetService->getFollowingTweets(
+            Auth::id(),
+            $request->input('per_page', 20),
+            $request->input('page', 1)
+        );
+        return $this->sendResponse($tweets);
+    }
 
     public function store(Request $request): JsonResponse {
     
-        $userId = Auth::id();
-
         $validator = Validator::make($request->all(), [
             'text' => ['required','string', 'max:16384'],
         ]);
@@ -90,14 +103,14 @@ class TweetController extends BaseController
         }
 
         $tweet = $this->tweetService->create(
-            $userId, 
+            Auth::id(), 
             $request->input('text')
         );
         
         return $this->sendResponse($tweet,201);
     }
 
-    public function show(Request $request, int $tweetId): JsonResponse {
+    public function show(int $tweetId): JsonResponse {
         
         $tweet = $this->tweetService->getById(
             $tweetId, 
@@ -107,8 +120,8 @@ class TweetController extends BaseController
         return $this->sendResponse($tweet);
     }
 
-    public function destroy(Request $request, int $tweetId): JsonResponse {
-
+    public function destroy(int $tweetId): JsonResponse {
+        
         $userId = Auth::id();
 
         if (!$this->tweetService->isUserTweet($userId, $tweetId)) {
@@ -123,7 +136,7 @@ class TweetController extends BaseController
     public function update(Request $request, int $tweetId): JsonResponse {
 
         $userId = Auth::id();
-
+        
         if (!$this->tweetService->isUserTweet($userId, $tweetId)) {
             return $this->sendError('This tweet does not belong to the user', 401);
         }

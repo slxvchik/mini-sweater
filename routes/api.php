@@ -3,15 +3,14 @@
 use App\Http\Controllers\AccountController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CommentController;
+use App\Http\Controllers\FollowController;
 use App\Http\Controllers\LikeController;
 use App\Http\Controllers\TweetController;
 use App\Http\Controllers\UserController;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function (){
 
-    // todo: Auth routes
     Route::prefix('auth')->controller(AuthController::class)->group(function () {
         Route::post('/login', 'login');
         Route::post('/register', 'register');
@@ -19,20 +18,20 @@ Route::prefix('v1')->group(function (){
     })->middleware('throttle:5,1');
 
     Route::prefix('users')->controller(UserController::class)->group(function (){
-        
         Route::get('/', 'index');
         Route::get('/{username}', 'show');
-        
     });
     
-    // Route::prefix('follows')->controller(FollowController::class)->group(function (){
-        // todo:
-        // Follow system
-        // Route::get('/{username}/followers', 'followers');
-        // Route::get('/{username}/following', 'following');
-        // Route::post('/{username}/follow', 'follow')->middleware('auth:sanctum');
-        // Route::delete('/{username}/unfollow', 'unfollow')->middleware('auth:sanctum');
-    // });
+    Route::prefix('follows')->controller(FollowController::class)->group(function (){
+
+        Route::get('/','index');
+        Route::get('/follow', 'show');
+
+        Route::get('/{user_id}/followers', 'followers');
+        Route::get('/{user_id}/following', 'following');
+        Route::post('/follow', 'follow')->middleware('auth:sanctum');
+        Route::delete('/unfollow', 'unfollow')->middleware('auth:sanctum');
+    });
 
     Route::prefix('/account')->controller(AccountController::class)->middleware('auth:sanctum')->group(function (){
         Route::get('/', 'show');
@@ -49,12 +48,12 @@ Route::prefix('v1')->group(function (){
         
         Route::get('/', 'index');
         Route::post('/', 'store')->middleware('auth:sanctum');
+        Route::get('/feed', 'showFollowingTweets')->middleware('auth:sanctum');
         Route::get('/{tweet_id}', 'show');
         Route::put('/{tweet_id}', 'update')->middleware('auth:sanctum');
         Route::delete('/{tweet_id}', 'destroy')->middleware('auth:sanctum');
 
         Route::get('/user/{user_id}', 'showUserTweets');
-        // Route::get('/feed', 'showFollowingTweets')->middleware('auth:sanctum');
     });
 
     Route::prefix('comments')->controller(CommentController::class)->group(function() {

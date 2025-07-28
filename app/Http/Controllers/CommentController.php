@@ -17,7 +17,7 @@ class CommentController extends BaseController
         $this->commentService = $commentService;
     }
 
-    public function index(Request $request): JsonResponse {
+    public function index(): JsonResponse {
         $comments = $this->commentService->getAll();
         return $this->sendResponse($comments);
     }
@@ -46,7 +46,7 @@ class CommentController extends BaseController
         return $this->sendResponse($comment, 201);
     }
 
-    public function show(Request $request, int $commentId): JsonResponse {
+    public function show(int $commentId): JsonResponse {
 
         $comment = $this->commentService->getCommentById($commentId);
 
@@ -74,7 +74,7 @@ class CommentController extends BaseController
         return $this->sendResponse($comment);
     }
 
-    public function destroy(Request $request, int $commentId): JsonResponse {
+    public function destroy(int $commentId): JsonResponse {
         
         $userId = Auth::id();
 
@@ -89,7 +89,7 @@ class CommentController extends BaseController
 
     public function tweetComments(Request $request, int $tweetId): JsonResponse {
         
-        $validator = Validator::make($request->all(), [
+        $validator = Validator::make(array_merge($request->all()), [
             'page' => ['sometimes', 'integer', 'min:1'],
             'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
             'sort_by' => ['sometimes', 'string', 'in:created_at,likes_count'],

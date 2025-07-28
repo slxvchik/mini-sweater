@@ -4,10 +4,8 @@ namespace App\Services;
 
 use App\Enums\LikeableType;
 use App\Exceptions\CommentNotFoundException;
-use App\Exceptions\ModelNotFoundException;
 use App\Exceptions\TweetNotFoundException;
 use App\Exceptions\UserNotFoundException;
-use App\Exceptions\ValidationException;
 use App\Models\Comment;
 use App\Repository\CommentRepository;
 use App\Repository\LikeRepository;
@@ -15,7 +13,6 @@ use App\Repository\TweetRepository;
 use App\Repository\UserRepository;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
-use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class CommentService {
 
@@ -96,7 +93,7 @@ class CommentService {
         $perPage = min(max(1, $perPage), 100);
         $page = max(1, $page);
 
-        $sortBy = in_array($sortBy, ['created_at', 'likes_count']) ? $sortBy : 'created_at';
+        $sortBy = in_array($sortBy, $this->getCommentSortParams()) ? $sortBy : 'created_at';
         $sortOrder = in_array(strtolower($sortOrder), ['asc', 'desc']) ? strtolower($sortOrder) : 'desc';
 
         return $this->commentRepository->findCommentsByTweetWithInfo(
@@ -118,6 +115,10 @@ class CommentService {
         $comment = $this->commentRepository->findCommentById($commentId);
 
         return $comment->user_id === $userId;
+    }
+
+    private function getCommentSortParams(): array {
+        return ['created_at', 'likes_count'];
     }
 
 }

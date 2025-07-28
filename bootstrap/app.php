@@ -46,16 +46,22 @@ return Application::configure(basePath: dirname(__DIR__))
         });
 
         function determineStatusCode(Throwable $ex): int {
-            if (method_exists($ex, 'getStatusCode')) {
-                return $ex->getStatusCode();
-            }
             
             if ($ex instanceof ValidationException) {
                 return $ex->status;
             }
+
+            $exceptionCode = $ex->getCode();
+    
+            if (is_numeric($exceptionCode) && $exceptionCode >= 100 && $exceptionCode < 600) {
+                return (int)$exceptionCode;
+            }
             
-            $code = $ex->getCode();
-            return ($code > 0 && $code < 600) ? $code : 500;
+            if ($ex instanceof \PDOException || $ex instanceof \Illuminate\Database\QueryException) {
+                return 500;
+            }
+
+            return 500;
         }
 
     })->create();

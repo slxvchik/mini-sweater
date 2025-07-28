@@ -64,15 +64,17 @@ class LikeController extends BaseController
         return $this->sendResponse($like, 201);
     }
 
-    public function show(Request $request, int $likeId): JsonResponse {
+    public function show(int $likeId): JsonResponse {
+
         $like = $this->likeService->getLikeById($likeId);
+
         return $this->sendResponse($like);
     }
 
-    public function destroy(Request $request, int $likeId): JsonResponse {
+    public function destroy(int $likeId): JsonResponse {
         
         $userId = Auth::id();
-
+        
         if (!$this->likeService->isUserLike($userId, $likeId)) {
             return $this->sendError("This like does not belong to the user", 401);
         }
@@ -84,14 +86,14 @@ class LikeController extends BaseController
         return $this->sendError('Server cannot delete like', 500);
     }
 
-    public function showTweetLikes(Request $request, int $tweetId): JsonResponse {
+    public function showTweetLikes(int $tweetId): JsonResponse {
         
         $likes = $this->likeService->getTweetLikes($tweetId);
 
         return $this->sendResponse($likes);
     }
 
-    public function showCommentLikes(Request $request, int $tweetId): JsonResponse {
+    public function showCommentLikes(int $tweetId): JsonResponse {
         
         $likes = $this->likeService->getCommentLikes($tweetId);
 

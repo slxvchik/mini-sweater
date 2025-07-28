@@ -6,6 +6,7 @@ use App\Enums\LikeableType;
 use App\Exceptions\TweetNotFoundException;
 use App\Models\Tweet;
 use App\Repository\CommentRepository;
+use App\Repository\FollowRepository;
 use App\Repository\LikeRepository;
 use Illuminate\Database\Eloquent\Collection;
 use App\Repository\TweetRepository;
@@ -17,16 +18,19 @@ class TweetService {
     private TweetRepository $tweetRepository;
     private LikeRepository $likeRepository;
     private CommentRepository $commentRepository;
+    private FollowRepository $followRepository;
 
     public function __construct(
         TweetRepository $tweetRepository,
         LikeRepository $likeRepository,
-        CommentRepository $commentRepository
+        CommentRepository $commentRepository,
+        FollowRepository $followRepository
         ) {
 
         $this->tweetRepository = $tweetRepository;
         $this->likeRepository = $likeRepository;
         $this->commentRepository = $commentRepository;
+        $this->followRepository = $followRepository;
     }
 
     // Last tweets all users
@@ -35,8 +39,9 @@ class TweetService {
         $perPage = min(max(1, $perPage), 100);
         $page = max(1, $page);
 
-        $sortBy = in_array($sortBy, ['created_at', 'likes_count']) ? $sortBy : 'created_at';
+        $sortBy = in_array($sortBy, $this->getTweetSortParams()) ? $sortBy : 'created_at';
         $sortOrder = in_array(strtolower($sortOrder), ['asc', 'desc']) ? strtolower($sortOrder) : 'desc';
+       
 
         return $this->tweetRepository->findTweets(
             $currentUserId,
@@ -53,7 +58,7 @@ class TweetService {
         $perPage = min(max(1, $perPage), 100);
         $page = max(1, $page);
 
-        $sortBy = in_array($sortBy, ['created_at', 'likes_count']) ? $sortBy : 'created_at';
+        $sortBy = in_array($sortBy, $this->getTweetSortParams()) ? $sortBy : 'created_at';
         $sortOrder = in_array(strtolower($sortOrder), ['asc', 'desc']) ? strtolower($sortOrder) : 'desc';
 
         return $this->tweetRepository->findUserTweets(
@@ -67,22 +72,24 @@ class TweetService {
     }
 
     // Last tweets following users
-    // public function getFollowingTweets(int $userId, int $perPage = 20, int $page = 1, $sortBy = 'created_at', $sortOrder = 'desc'): Collection {
+    public function getFollowingTweets(int $currentUserId, int $perPage = 20, int $page = 1): Collection {
 
-    //     $perPage = min(max(1, $perPage), 100);
-    //     $page = max(1, $page);
+        $perPage = min(max(1, $perPage), 100);
+        $page = max(1, $page);
 
-    //     $sortBy = in_array($sortBy, ['created_at', 'likes_count']) ? $sortBy : 'created_at';
-    //     $sortOrder = in_array(strtolower($sortOrder), ['asc', 'desc']) ? strtolower($sortOrder) : 'desc';
-    //     return null;
-    //     // return $this->tweetRepository->findFollowingTweets(
-    //     //     $userId,
-    //     //     $perPage,
-    //     //     $page,
-    //     //     $sortBy,
-    //     //     $sortOrder
-    //     // );
-    // }
+        $followedIds = $this->followRepository->findFollowedIds($currentUserId);
+
+        if (empty($followedIds)) {
+            return new Collection();
+        }
+
+        return $this->tweetRepository->findFollowingTweets(
+            $currentUserId,
+            $followedIds,
+            $perPage,
+            $page,
+        );
+    }
 
     public function create(string $userId, string $text): Tweet {
         return $this->tweetRepository->create($userId, $text);
@@ -130,5 +137,9 @@ class TweetService {
         $tweet = $this->getById($tweetId);
 
         return $tweet->user_id === $userId;
+    }
+
+    private function getTweetSortParams(): array {
+        return ['created_at', 'comments_count', 'likes_count'];
     }
 }

@@ -20,7 +20,6 @@ class TweetRepository {
                 $q->where('user_id', $currentUserId);
             }]);
         }
-        
         $query->orderBy($sortBy, $sortOrder);
         return $query->forPage($page, $perPage)->get();
     }
@@ -41,9 +40,19 @@ class TweetRepository {
         return $query->forPage($page, $perPage)->get();
     }
 
-    // public function findFollowingTweets() {
-    //     $followingIds = Relationship::where('follower_id', $followerId);
-    // }
+    public function findFollowingTweets(int $currentUserId, array $followedIds, int $perPage = 20, int $page = 1): Collection {
+        
+        $query = Tweet::whereIn('user_id', $followedIds)
+            ->with('user:id,username')
+            ->withCount(['comments', 'likes']);
+        
+        $query->withExists(['likes as is_liked' => function($q) use ($currentUserId) {
+            $q->where('user_id', $currentUserId);
+        }]);
+
+        $query->orderBy('created_at', 'desc');
+        return $query->forPage($page, $perPage)->get();
+    }
 
     public function create(int $userId, string $text): Tweet {
         return Tweet::create([
